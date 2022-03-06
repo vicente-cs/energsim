@@ -19,11 +19,6 @@ class Consumidor:
             "custo": self.consumo * t_dias * taxa,
         }
 
-    # Nesse caso, o consumo não é diretamente definido
-    @property
-    def consumo(self):
-        """Consumo em kwH"""
-        return 0
 
     def grafico(self, t_dias: float, taxa: float):
         plt.style.use("fivethirtyeight")
@@ -48,6 +43,12 @@ class Consumidor:
 
         plt.tight_layout()
         plt.show()
+
+    # Nesse caso, o consumo não é diretamente definido
+    @property
+    def consumo(self):
+        """Consumo em kwH"""
+        return 0
 
     @classmethod
     def cadastrar(self):
@@ -89,6 +90,11 @@ class Residencia(Consumidor):
             taxa = self.taxa
 
         return super().simular(t_dias, taxa)
+
+    def grafico(self, t_dias: float, taxa: float = None):
+        if taxa == None:
+            taxa = self.taxa
+        return super().grafico(t_dias, taxa)
 
     @property
     def consumo(self):
