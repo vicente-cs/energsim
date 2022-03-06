@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+#TODO Implementar algo com composição/agregação
+
 class Consumidor:
     """Algo que consome energia"""
 
@@ -23,7 +25,6 @@ class Consumidor:
         """Consumo em kwH"""
         return 0
 
-    # TODO: Implementar stats
     def grafico(self, t_dias: float, taxa: float):
         plt.style.use("fivethirtyeight")
 
