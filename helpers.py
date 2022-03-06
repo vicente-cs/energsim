@@ -10,11 +10,11 @@ class Consumidor:
         self.nome = nome
         self.potencia = potencia
 
-    def simular(self, t_dias: float, taxa_kwh: float):
+    def simular(self, t_dias: float, taxa: float):
         """Simula o consumo de um período de t_dias"""
         return {
             "consumo": self.consumo * t_dias,
-            "custo": self.consumo * t_dias * taxa_kwh,
+            "custo": self.consumo * t_dias * taxa,
         }
 
     # Nesse caso, o consumo não é diretamente definido
@@ -24,13 +24,13 @@ class Consumidor:
         return 0
 
     # TODO: Implementar stats
-    def grafico(self, t_dias: float, taxa_kwh: float):
+    def grafico(self, t_dias: float, taxa: float):
         plt.style.use("fivethirtyeight")
 
         plt.title(f"{self.nome}: relação custo/consumo")
         plt.xlabel("Dias")
 
-        sim = self.simular(t_dias, taxa_kwh)
+        sim = self.simular(t_dias, taxa)
 
         x1 = np.array([0, t_dias])
         y1 = np.array([0, sim["custo"]])
@@ -77,17 +77,17 @@ class Eletrodomestico(Consumidor):
 
 class Residencia(Consumidor):
     def __init__(
-        self, nome: str, taxa_kwh: float, eletrodomesticos: List[Eletrodomestico] = []
+        self, nome: str, taxa: float, eletrodomesticos: List[Eletrodomestico] = []
     ):
         self.nome = nome
-        self.taxa_kwh = taxa_kwh
+        self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos
 
-    def simular(self, t_dias: float, taxa_kwh: float = None):
-        if taxa_kwh == None:
-            taxa_kwh = self.taxa_kwh
+    def simular(self, t_dias: float, taxa: float = None):
+        if taxa == None:
+            taxa = self.taxa
 
-        return super().simular(t_dias, taxa_kwh)
+        return super().simular(t_dias, taxa)
 
     @property
     def consumo(self):
@@ -101,5 +101,5 @@ class Residencia(Consumidor):
     @classmethod
     def cadastrar(self):
         nome = input("Nome da residência: ")
-        taxa_kwh = float(input("Taxa de energia: "))
-        return self(nome, taxa_kwh)
+        taxa = float(input("Taxa de energia: "))
+        return self(nome, taxa)
