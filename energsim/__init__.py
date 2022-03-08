@@ -1,1 +1,1 @@
-from energsim.core import Consumidor, Eletrodomestico, Residencia
+from energsim.core import Consumidor, Eletrodomestico, Residencia, TV
