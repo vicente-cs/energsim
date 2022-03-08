@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PyInquirer import prompt
 from examples import custom_style_3
-from energsim.utils import ValidarNumero
+from energsim.utils import ValidarHorario, ValidarRacionaisPositivos
 from energsim.interfaces import Interface, InterfaceRes
 
-
+# TODO arrumar bug Key
 class Consumidor:
     """Algo que consome energia"""
 
@@ -59,7 +59,7 @@ class Consumidor:
             "name": "potencia",
             "message": "Potência (Watts)",
             "filter": lambda val: float(val),
-            "validate": ValidarNumero,
+            "validate": ValidarRacionaisPositivos,
         },
     ]
 
@@ -89,14 +89,14 @@ class Eletrodomestico(Consumidor):
             "name": "potencia",
             "message": "Potência (Watts)",
             "filter": lambda val: float(val),
-            "validate": ValidarNumero,
+            "validate": ValidarRacionaisPositivos,
         },
         {
             "type": "input",
             "name": "h_diario",
             "message": "Uso diário (Horas)",
             "filter": lambda val: float(val),
-            "validate": ValidarNumero,
+            "validate": ValidarHorario,
         },
     ]
 

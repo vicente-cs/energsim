@@ -1,7 +1,7 @@
 from threading import local
 from examples import custom_style_3
 from PyInquirer import prompt
-from energsim.utils import ValidarNumero
+from energsim.utils import ValidarHorario, ValidarNumero, ValidarRacionaisPositivos
 from inspect import getargspec
 
 
@@ -42,7 +42,7 @@ class Interface:
                 "name": "t_dias",
                 "message": "Período (Dias)",
                 "filter": lambda val: float(val),
-                "validate": ValidarNumero,
+                "validate": ValidarRacionaisPositivos,
             }
         ]
 
@@ -55,7 +55,7 @@ class Interface:
                 "name": "taxa",
                 "message": "Taxa (R$/kWh)",
                 "filter": lambda val: float(val),
-                "validate": ValidarNumero,
+                "validate": ValidarHorario,
             }
         ]
 

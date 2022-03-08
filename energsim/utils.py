@@ -1,7 +1,7 @@
 from pydoc import doc
 from prompt_toolkit.validation import Validator, ValidationError
 
-# TODO Implementar validação horário
+# TODO Implementar valid
 class ValidarNumero(Validator):
     def validate(self, document):
         try:
@@ -11,11 +11,21 @@ class ValidarNumero(Validator):
 
 
 class ValidarHorario(Validator):
+    pass
     def validate(self, document):
-        message = "Digite um valor válido"
         try:
             val = float(document.text)
             if not (0 <= val <= 24):
-                raise ValidationError(message=message)
+                raise ValidationError(message="Digite um valor no período válido")
         except:
-            raise ValidationError(message=message)
+            raise ValidationError(message="Digite um valor válido")
+
+
+class ValidarRacionaisPositivos(Validator):
+    def validate(self, document):
+        try:
+            val = float(document.text)
+            if val < 0:
+                raise ValidationError(message="Digite um valor positivo")
+        except:
+            raise ValidationError(message="Digite um valor válido")

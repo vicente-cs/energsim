@@ -1,5 +1,5 @@
 from energsim import Eletrodomestico
-from energsim.utils import ValidarNumero
+from energsim.utils import ValidarNumero, ValidarHorario
 
 
 class TV(Eletrodomestico):
@@ -30,6 +30,6 @@ class TV(Eletrodomestico):
             "name": "h_diario",
             "message": "Uso diário (Horas)",
             "filter": lambda val: float(val),
-            "validate": ValidarNumero,
+            "validate": ValidarHorario,
         },
     ]
