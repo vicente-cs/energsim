@@ -4,15 +4,22 @@ import numpy as np
 from PyInquirer import prompt
 from examples import custom_style_3
 from energsim.utils import ValidarNumero
+from energsim.interfaces import Interface, InterfaceRes
 
 
-# TODO Implementar algo com composição/agregação
 class Consumidor:
     """Algo que consome energia"""
 
-    def __init__(self, nome, potencia):
+    def __init__(self, nome, potencia, interface=None):
         self.nome = nome
         self.potencia = potencia
+        self.interface = interface if interface is not None else Interface(self)
+
+    # Nesse caso, o consumo não é diretamente definido
+    @property
+    def consumo(self):
+        """Consumo em kwH"""
+        return 0
 
     def simular(self, t_dias, taxa):
         """Simula o consumo de um período de t_dias"""
@@ -45,21 +52,22 @@ class Consumidor:
         plt.tight_layout()
         plt.show()
 
-    # Nesse caso, o consumo não é diretamente definido
-    @property
-    def consumo(self):
-        """Consumo em kwH"""
-        return 0
-
-    _tabela_cadastro = [
+    cadastro = [
         {"type": "input", "name": "nome", "message": "Nome da entidade"},
-        {"type": "input", "name": "potencia", "message": "Potência"},
+        {
+            "type": "input",
+            "name": "potencia",
+            "message": "Potência (Watts)",
+            "filter": lambda val: float(val),
+            "validate": ValidarNumero,
+        },
     ]
 
     @classmethod
-    def cadastrar(self):
-        respostas = prompt(self._tabela_cadastro, style=custom_style_3)
-        return self(**respostas)
+    def cadastrar(cls, **kwargs):
+        cadastro = list(filter(lambda x: x["name"] not in kwargs, cls.cadastro))
+        respostas = {**prompt(cadastro, style=custom_style_3), **kwargs}
+        return cls(**respostas)
 
     def __repr__(self) -> str:
         return self.__class__.__name__ + ":" + str(self.__dict__)
@@ -74,7 +82,7 @@ class Eletrodomestico(Consumidor):
     def consumo(self):
         return self.h_diario * self.potencia / 1000
 
-    _tabela_cadastro = [
+    cadastro = [
         {"type": "input", "name": "nome", "message": "Nome do eletrodoméstico"},
         {
             "type": "input",
@@ -94,10 +102,22 @@ class Eletrodomestico(Consumidor):
 
 
 class Residencia(Consumidor):
-    def __init__(self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = []):
+    def __init__(
+        self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = None, interface=None
+    ):
         self.nome = nome
         self.taxa = taxa
-        self.eletrodomesticos = eletrodomesticos
+        self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
+        self.interface = interface if interface is not None else InterfaceRes(self)
+
+    @property
+    def consumo(self):
+        _consumo = 0
+        if len(self.eletrodomesticos) > 0:
+            for eletro in self.eletrodomesticos:
+                _consumo += eletro.consumo
+
+        return _consumo
 
     def simular(self, t_dias, taxa=None):
         if taxa == None:
@@ -110,61 +130,7 @@ class Residencia(Consumidor):
             taxa = self.taxa
         return super().grafico(t_dias, taxa)
 
-    def get_eletro_prompt(self):
-        eletro_sel = [
-            {
-                "type": "list",
-                "name": "eletros",
-                "message": "Selecione um eletrodoméstico",
-                "choices": [
-                    {"name": eletro.nome, "value": eletro}
-                    for eletro in self.eletrodomesticos
-                ],
-            }
-        ]
-        return prompt(eletro_sel, style=custom_style_3)["eletros"]
-
-    def get_acao_prompt(self):
-        acoes = [
-            {
-                "type": "list",
-                "name": "acao",
-                "message": "Selecione uma ação",
-                "choices": [
-                    {"name": "Adicionar eletrodoméstico", "value": "add_eletro"},
-                    {"name": "Remover eletrodoméstico", "value": "del_eletro"},
-                    {"name": "Consultar eletrodoméstico", "value": "con_eletro"},
-                    {"name": "Simular conta", "value": "sim_conta"},
-                    {"name": "Sair", "value": "sair"},
-                ],
-            }
-        ]
-
-        return prompt(acoes, style=custom_style_3)["acao"]
-
-    def interagir(self):
-        acao = self.get_acao_prompt()
-
-        if acao == "con_eletro":
-            pass
-
-        elif acao == "del_eletro":
-            eletro = self.get_eletro_prompt()
-            self.eletrodomesticos.remove(eletro)
-
-        if acao != "sair":
-            self.interagir()
-
-    @property
-    def consumo(self):
-        _consumo = 0
-        if len(self.eletrodomesticos) > 0:
-            for eletro in self.eletrodomesticos:
-                _consumo += eletro.consumo
-
-        return _consumo
-
-    _tabela_cadastro = [
+    cadastro = [
         {"type": "input", "name": "nome", "message": "Nome da residência"},
         {
             "type": "list",

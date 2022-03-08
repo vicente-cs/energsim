@@ -6,7 +6,7 @@ class TV(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    _tabela_cadastro = [
+    cadastro = [
         {"type": "input", "name": "nome", "message": "Nome da TV (ex: TV Sala)"},
         {
             "type": "list",
