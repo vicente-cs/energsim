@@ -10,10 +10,23 @@ from inspect import getargspec
 # TODO arrumar bug Key
 class Consumidor:
     """Algo que consome energia"""
-    def __init__(self, nome, potencia, interface=None):
+
+    def __init__(self, nome):
         self.nome = nome
-        self.potencia = potencia
-        self.interface = interface if interface is not None else self.Interface(self)
+        self.template = [
+            {
+                "type": "list",
+                "name": "acao",
+                "message": "Selecione uma ação",
+                "choices": [],
+            }
+        ]
+
+        self._acoes = [
+            {"name": "Simular custo/consumo", "value": self._simular_acao},
+            {"name": "Visualizar gráfico", "value": self._grafico_acao},
+            {"name": "Sair", "value": "sair"},
+        ]
 
     # Nesse caso, o consumo não é diretamente definido
     @property
@@ -69,100 +82,75 @@ class Consumidor:
         respostas = {**prompt(cadastro, style=custom_style_3), **kwargs}
         return cls(**respostas)
 
-    class Interface:
-        def __init__(self, obj, template=None):
-            self.obj = obj
+    @property
+    def tabela(self):
+        _tabela = self.template
+        # Acessa as escolhas da tabela de ações
+        _tabela[0]["choices"] = self._acoes
+        return _tabela
 
-            self.template = (
-                template
-                if template is not None
-                else [
-                    {
-                        "type": "list",
-                        "name": "acao",
-                        "message": "Selecione uma ação",
-                        "choices": [],
-                    }
-                ]
-            )
+    def _prompt_dias(self):
+        pergunta = [
+            {
+                "type": "input",
+                "name": "t_dias",
+                "message": "Período (Dias)",
+                "filter": lambda val: float(val),
+                "validate": ValidarRacionaisPositivos,
+            }
+        ]
 
-            self._acoes = [
-                {"name": "Simular custo/consumo", "value": self.simular},
-                {"name": "Visualizar gráfico", "value": self.grafico},
-                {"name": "Sair", "value": "sair"},
-            ]
+        return prompt(pergunta, style=custom_style_3)["t_dias"]
 
-            # self.eletrodomesticos = [{"name": "TV", "value": TV}]
+    def _prompt_taxa(self):
+        pergunta = [
+            {
+                "type": "input",
+                "name": "taxa",
+                "message": "Taxa (R$/kWh)",
+                "filter": lambda val: float(val),
+                "validate": ValidarHorario,
+            }
+        ]
 
-        @property
-        def tabela(self):
-            _tabela = self.template
-            # Acessa as escolhas da tabela de ações
-            _tabela[0]["choices"] = self._acoes
-            return _tabela
+        return prompt(pergunta, style=custom_style_3).get("taxa","")
 
-        def prompt_dias(self):
-            pergunta = [
-                {
-                    "type": "input",
-                    "name": "t_dias",
-                    "message": "Período (Dias)",
-                    "filter": lambda val: float(val),
-                    "validate": ValidarRacionaisPositivos,
-                }
-            ]
+    def _simular_acao(self, t_dias=None, taxa=None):
+        if taxa == None:
+            taxa = self._prompt_taxa()
 
-            return prompt(pergunta, style=custom_style_3)["t_dias"]
+        if t_dias == None:
+            t_dias = self._prompt_dias()
 
-        def prompt_taxa(self):
-            pergunta = [
-                {
-                    "type": "input",
-                    "name": "taxa",
-                    "message": "Taxa (R$/kWh)",
-                    "filter": lambda val: float(val),
-                    "validate": ValidarHorario,
-                }
-            ]
+        resposta = self.simular(t_dias, taxa)
+        consumo = resposta["consumo"]
+        custo = resposta["custo"]
+        print(f"Consumo: {consumo} kWh")
+        print(f"Custo: {custo} R$")
 
-            return prompt(pergunta, style=custom_style_3)["taxa"]
+    def _grafico_acao(self, t_dias=None, taxa=None):
+        if t_dias == None:
+            t_dias = self._prompt_dias()
 
-        def simular(self, t_dias=None, taxa=None):
-            if taxa == None:
-                taxa = self.prompt_taxa()
+        if taxa == None:
+            taxa = self._prompt_taxa()
 
-            if t_dias == None:
-                t_dias = self.prompt_dias()
+        self.grafico(t_dias, taxa)
 
-            resposta = self.obj.simular(taxa, t_dias)
-            consumo = resposta["consumo"]
-            custo = resposta["custo"]
-            print(f"Consumo: {consumo} kWh")
-            print(f"Custo: {custo} R$")
+    def interagir(self, t_dias=None, taxa=None):
+        acao = prompt(self.tabela, style=custom_style_3)["acao"]
+        if acao != "sair":
+            acao_args = getargspec(acao).args
 
-        def grafico(self, t_dias=None, taxa=None):
-            if t_dias == None:
-                t_dias = self.prompt_dias()
+            interagir_locals = locals().copy()
+            interagir_locals.pop("self")
 
-            if taxa == None:
-                taxa = self.prompt_taxa()
+            val_locals = {k: v for k, v in interagir_locals.items() if k in acao_args}
 
-            self.obj.grafico(t_dias, taxa)
+            # Executa a ação
+            acao(**val_locals)
 
-        def interagir(self, t_dias=None, taxa=None):
-            acao = prompt(self.tabela, style=custom_style_3)["acao"]
-            if acao != "sair":
-                acao_args = getargspec(acao).args
-
-                interagir_locals = locals().copy()
-                interagir_locals.pop("self")
-
-                val_locals = {k: v for k, v in interagir_locals.items() if k in acao_args}
-
-                # Executa a ação
-                acao(**val_locals)
-
-                self.interagir(**val_locals)
+            self.interagir(**val_locals)
 
     def __repr__(self) -> str:
         return self.__class__.__name__ + ":" + str(self.__dict__)
@@ -170,7 +158,8 @@ class Consumidor:
 
 class Eletrodomestico(Consumidor):
     def __init__(self, nome, potencia, h_diario):
-        super().__init__(nome, potencia)
+        super().__init__(nome)
+        self.potencia = potencia
         self.h_diario = h_diario
 
     @property
@@ -198,12 +187,18 @@ class Eletrodomestico(Consumidor):
 
 class Residencia(Consumidor):
     def __init__(
-        self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = None, interface=None
+        self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = None
     ):
-        self.nome = nome
+        super().__init__(nome)
         self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
-        self.interface = interface if interface is not None else self.InterfaceRes(self)
+        self._acoes.insert(
+            0, {"name": "Remover eletrodoméstico", "value": self._remover_eletro_acao}
+        )
+
+        self._acoes.insert(
+            0, {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao}
+        )
 
     @property
     def consumo(self):
@@ -225,6 +220,41 @@ class Residencia(Consumidor):
             taxa = self.taxa
         return super().grafico(t_dias, taxa)
 
+    def _prompt_eletros(self):
+        pergunta = [
+            {
+                "type": "list",
+                "name": "eletros",
+                "message": "Selecione um eletrodoméstico",
+                "choices": [
+                    {"name": eletro.nome, "value": eletro}
+                    for eletro in self.eletrodomesticos
+                ],
+            }
+        ]
+        return prompt(pergunta, style=custom_style_3)["eletros"]
+
+    def _adicionar_eletro_acao(self, eletro=None):
+        pass
+
+    def _remover_eletro_acao(self, eletro=None):
+        if eletro == None:
+            eletro = self._prompt_eletros()
+
+        self.eletrodomesticos.remove(eletro)
+
+    def _consultar_eletro_acao(self, t_dias=None, taxa=None, eletro=None):
+        if eletro == None:
+            eletro = self._prompt_eletros()
+
+        eletro.interagir(t_dias, taxa)
+
+    def interagir(self, t_dias=None, taxa=None):
+        if taxa == None:
+            taxa = self.taxa
+
+        return super().interagir(t_dias, taxa)
+
     cadastro = [
         {"type": "input", "name": "nome", "message": "Nome da residência"},
         {
@@ -241,55 +271,6 @@ class Residencia(Consumidor):
         },
     ]
 
-    class InterfaceRes(Consumidor.Interface):
-        def __init__(self, obj, template=None):
-            super().__init__(obj, template)
-            # self._acoes.insert(
-            #     0, {"name": "Adicionar eletrodoméstico", "value": self.adicionar}
-            # )
-
-            self._acoes.insert(
-                0, {"name": "Remover eletrodoméstico", "value": self.remover}
-            )
-
-            self._acoes.insert(
-                0, {"name": "Consultar eletrodoméstico", "value": self.consultar}
-            )
-
-        def prompt_eletros(self):
-            pergunta = [
-                {
-                    "type": "list",
-                    "name": "eletros",
-                    "message": "Selecione um eletrodoméstico",
-                    "choices": [
-                        {"name": eletro.nome, "value": eletro}
-                        for eletro in self.obj.eletrodomesticos
-                    ],
-                }
-            ]
-            return prompt(pergunta, style=custom_style_3)["eletros"]
-
-        def adicionar(self, eletro=None):
-            pass
-
-        def remover(self, eletro=None):
-            if eletro == None:
-                eletro = self.prompt_eletros()
-
-            self.obj.eletrodomesticos.remove(eletro)
-
-        def consultar(self, t_dias=None, taxa=None, eletro=None):
-            if eletro == None:
-                eletro = self.prompt_eletros()
-
-            eletro.interface.interagir(t_dias, taxa)
-
-        def interagir(self, t_dias=None, taxa=None):
-            if taxa == None:
-                taxa = self.obj.taxa
-
-            return super().interagir(t_dias, taxa)
 
 class TV(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
