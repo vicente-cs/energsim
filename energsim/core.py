@@ -1,13 +1,15 @@
-from typing import List
+from typing import List, Type
 import matplotlib.pyplot as plt
 import numpy as np
 from PyInquirer import prompt
+from energsim.utils import ValidarHorario, ValidarRacionaisPositivos, clear
+from inspect import getfullargspec
 from examples import custom_style_3
-from energsim.utils import ValidarHorario, ValidarRacionaisPositivos
-from inspect import getargspec
 
 
-# TODO arrumar bug Key
+prompt_style = custom_style_3
+
+
 class Consumidor:
     """Algo que consome energia"""
 
@@ -78,8 +80,9 @@ class Consumidor:
 
     @classmethod
     def cadastrar(cls, **kwargs):
+        clear()
         cadastro = list(filter(lambda x: x["name"] not in kwargs, cls.cadastro))
-        respostas = {**prompt(cadastro, style=custom_style_3), **kwargs}
+        respostas = {**prompt(cadastro, style=prompt_style), **kwargs}
         return cls(**respostas)
 
     @property
@@ -100,7 +103,7 @@ class Consumidor:
             }
         ]
 
-        return prompt(pergunta, style=custom_style_3)["t_dias"]
+        return prompt(pergunta, style=prompt_style)["t_dias"]
 
     def _prompt_taxa(self):
         pergunta = [
@@ -113,7 +116,7 @@ class Consumidor:
             }
         ]
 
-        return prompt(pergunta, style=custom_style_3).get("taxa","")
+        return prompt(pergunta, style=prompt_style).get("taxa", "")
 
     def _simular_acao(self, t_dias=None, taxa=None):
         if taxa == None:
@@ -138,9 +141,10 @@ class Consumidor:
         self.grafico(t_dias, taxa)
 
     def interagir(self, t_dias=None, taxa=None):
-        acao = prompt(self.tabela, style=custom_style_3)["acao"]
+        clear()
+        acao = prompt(self.tabela, style=prompt_style)["acao"]
         if acao != "sair":
-            acao_args = getargspec(acao).args
+            acao_args = getfullargspec(acao).args
 
             interagir_locals = locals().copy()
             interagir_locals.pop("self")
@@ -186,18 +190,24 @@ class Eletrodomestico(Consumidor):
 
 
 class Residencia(Consumidor):
-    def __init__(
-        self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = None
-    ):
+    def __init__(self, nome, taxa, eletrodomesticos: List[Eletrodomestico] = None):
         super().__init__(nome)
         self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
+        self._eletro_tabela = [
+            {"name": "Televisão", "value": TV},
+            {"name": "Personalizado", "value": Eletrodomestico},
+        ]
+        self._acoes.insert(
+            0,
+            {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao},
+        )
         self._acoes.insert(
             0, {"name": "Remover eletrodoméstico", "value": self._remover_eletro_acao}
         )
-
         self._acoes.insert(
-            0, {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao}
+            0,
+            {"name": "Adicionar eletrodoméstico", "value": self._adicionar_eletro_acao},
         )
 
     @property
@@ -220,11 +230,11 @@ class Residencia(Consumidor):
             taxa = self.taxa
         return super().grafico(t_dias, taxa)
 
-    def _prompt_eletros(self):
+    def _prompt_eletro(self):
         pergunta = [
             {
                 "type": "list",
-                "name": "eletros",
+                "name": "eletro",
                 "message": "Selecione um eletrodoméstico",
                 "choices": [
                     {"name": eletro.nome, "value": eletro}
@@ -232,20 +242,34 @@ class Residencia(Consumidor):
                 ],
             }
         ]
-        return prompt(pergunta, style=custom_style_3)["eletros"]
+        return prompt(pergunta, style=prompt_style)["eletro"]
 
-    def _adicionar_eletro_acao(self, eletro=None):
-        pass
+    def _adicionar_eletro_acao(self, **kwargs):
+        pergunta = [
+            {
+                "type": "list",
+                "name": "eletro",
+                "message": "Selecione um eletrodoméstico",
+                "choices": self._eletro_tabela,
+            }
+        ]
+        eletro = prompt(pergunta, style=prompt_style)["eletro"]
 
-    def _remover_eletro_acao(self, eletro=None):
-        if eletro == None:
-            eletro = self._prompt_eletros()
+        self.eletrodomesticos.append(eletro.cadastrar(**kwargs))
+
+    def _remover_eletro_acao(self):
+        eletro = self._prompt_eletro()
 
         self.eletrodomesticos.remove(eletro)
 
-    def _consultar_eletro_acao(self, t_dias=None, taxa=None, eletro=None):
-        if eletro == None:
-            eletro = self._prompt_eletros()
+    def _consultar_eletro_acao(self, t_dias=None, taxa=None):
+        eletro = self._prompt_eletro()
+
+        print(
+            f"""{eletro.nome} {eletro.potencia}W
+Consumo de {eletro.consumo} kWh/dia
+{eletro.h_diario} horas diárias de uso"""
+        )
 
         eletro.interagir(t_dias, taxa)
 

@@ -1,6 +1,10 @@
-from energsim import *
+from helpers import ResContainer
+from pickle import dump
+from helpers import carregar
 
-res = Residencia.cadastrar()
-res.eletrodomesticos.append(TV.cadastrar())
-res.eletrodomesticos.append(Eletrodomestico.cadastrar())
-res.interface.interagir()
+container_path = "saves/container.pickle"
+
+container = carregar(container_path, ResContainer())
+container.interagir()
+
+dump(container, open(container_path, "wb"))

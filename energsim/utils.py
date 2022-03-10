@@ -1,7 +1,12 @@
 from pydoc import doc
 from prompt_toolkit.validation import Validator, ValidationError
+import os
 
-# TODO Implementar valid
+
+def clear():
+    os.system("cls||clear")
+
+
 class ValidarNumero(Validator):
     def validate(self, document):
         try:
@@ -12,6 +17,7 @@ class ValidarNumero(Validator):
 
 class ValidarHorario(Validator):
     pass
+
     def validate(self, document):
         try:
             val = float(document.text)
