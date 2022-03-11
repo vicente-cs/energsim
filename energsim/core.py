@@ -68,7 +68,12 @@ class Consumidor:
         plt.show()
 
     cadastro = [
-        {"type": "input", "name": "nome", "message": "Nome da entidade"},
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da entidade",
+            "validate": lambda x: x != "",
+        },
         {
             "type": "input",
             "name": "potencia",
@@ -171,7 +176,12 @@ class Eletrodomestico(Consumidor):
         return self.h_diario * self.potencia / 1000
 
     cadastro = [
-        {"type": "input", "name": "nome", "message": "Nome do eletrodoméstico"},
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome do eletrodoméstico",
+            "validate": lambda x: x != "",
+        },
         {
             "type": "input",
             "name": "potencia",
@@ -231,18 +241,21 @@ class Residencia(Consumidor):
         return super().grafico(t_dias, taxa)
 
     def _prompt_eletro(self):
-        pergunta = [
-            {
-                "type": "list",
-                "name": "eletro",
-                "message": "Selecione um eletrodoméstico",
-                "choices": [
-                    {"name": eletro.nome, "value": eletro}
-                    for eletro in self.eletrodomesticos
-                ],
-            }
-        ]
-        return prompt(pergunta, style=prompt_style)["eletro"]
+        if len(self.eletrodomesticos) > 0:
+            pergunta = [
+                {
+                    "type": "list",
+                    "name": "eletro",
+                    "message": "Selecione um eletrodoméstico",
+                    "choices": [
+                        {"name": eletro.nome, "value": eletro}
+                        for eletro in self.eletrodomesticos
+                    ],
+                }
+            ]
+            return prompt(pergunta, style=prompt_style)["eletro"]
+        else:
+            return None
 
     def _adicionar_eletro_acao(self, **kwargs):
         pergunta = [
@@ -259,19 +272,19 @@ class Residencia(Consumidor):
 
     def _remover_eletro_acao(self):
         eletro = self._prompt_eletro()
-
-        self.eletrodomesticos.remove(eletro)
+        if eletro != None:
+            self.eletrodomesticos.remove(eletro)
 
     def _consultar_eletro_acao(self, t_dias=None, taxa=None):
         eletro = self._prompt_eletro()
+        if eletro != None:
+            print(
+                f"""{eletro.nome} {eletro.potencia}W
+    Consumo de {eletro.consumo} kWh/dia
+    {eletro.h_diario} horas diárias de uso"""
+            )
 
-        print(
-            f"""{eletro.nome} {eletro.potencia}W
-Consumo de {eletro.consumo} kWh/dia
-{eletro.h_diario} horas diárias de uso"""
-        )
-
-        eletro.interagir(t_dias, taxa)
+            eletro.interagir(t_dias, taxa)
 
     def interagir(self, t_dias=None, taxa=None):
         if taxa == None:
@@ -280,7 +293,12 @@ Consumo de {eletro.consumo} kWh/dia
         return super().interagir(t_dias, taxa)
 
     cadastro = [
-        {"type": "input", "name": "nome", "message": "Nome da residência"},
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da residência",
+            "validate": lambda x: x != "",
+        },
         {
             "type": "list",
             "name": "taxa",
@@ -301,7 +319,12 @@ class TV(Eletrodomestico):
         super().__init__(nome, potencia, h_diario)
 
     cadastro = [
-        {"type": "input", "name": "nome", "message": "Nome da TV (ex: TV Sala)"},
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: TV Sala)",
+            "validate": lambda x: x != "",
+        },
         {
             "type": "list",
             "name": "potencia",
