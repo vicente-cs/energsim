@@ -40,18 +40,21 @@ class ResContainer:
         ]
 
     def _residencia_prompt(self):
-        pergunta = [
-            {
-                "type": "list",
-                "message": "Selecione uma residência",
-                "name": "residencia",
-                "choices": [
-                    {"name": residencia.nome, "value": residencia}
-                    for residencia in self.residencias
-                ],
-            }
-        ]
-        return prompt(pergunta, style=custom_style_3)["residencia"]
+        if len(self.residencias) > 0:
+            pergunta = [
+                {
+                    "type": "list",
+                    "message": "Selecione uma residência",
+                    "name": "residencia",
+                    "choices": [
+                        {"name": residencia.nome, "value": residencia}
+                        for residencia in self.residencias
+                    ],
+                }
+            ]
+            return prompt(pergunta, style=custom_style_3)["residencia"]
+        else:
+            return None
 
     @property
     def tabela(self):
@@ -66,18 +69,14 @@ class ResContainer:
         res.interagir()
 
     def _remover_acao(self):
-        if len(self.residencias) > 0:
-            residencia = self._residencia_prompt()
+        residencia = self._residencia_prompt()
+        if residencia != None:
             self.residencias.remove(residencia)
-        else:
-            print("Nenhuma residência encontrada")
 
     def _consultar_acao(self):
-        if len(self.residencias) > 0:
-            residencia = self._residencia_prompt()
+        residencia = self._residencia_prompt()
+        if residencia != None:
             residencia.interagir()
-        else:
-            print("Nenhuma residência encontrada")
 
     def interagir(self):
         clear()
