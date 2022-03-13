@@ -9,6 +9,8 @@ from examples import custom_style_3
 
 prompt_style = custom_style_3
 
+# TODO: Adicionar nome às consultas
+
 
 class Consumidor:
     """Algo que consome energia"""
@@ -30,9 +32,11 @@ class Consumidor:
             {"name": "Sair", "value": "sair"},
         ]
 
+    categoria = "Consumidor"
+
     # Nesse caso, o consumo não é diretamente definido
     @property
-    def consumo(self):
+    def consumo(self) -> float:
         """Consumo em kwH"""
         return 0
 
@@ -97,6 +101,11 @@ class Consumidor:
         _tabela[0]["choices"] = self._acoes
         return _tabela
 
+    # Nenhuma descrição interessante para Consumidor
+    @property
+    def _descricao(self):
+        return ""
+
     def _prompt_dias(self):
         pergunta = [
             {
@@ -133,8 +142,9 @@ class Consumidor:
         resposta = self.simular(t_dias, taxa)
         consumo = resposta["consumo"]
         custo = resposta["custo"]
-        print(f"Consumo: {consumo} kWh")
-        print(f"Custo: {custo} R$")
+        print(f"Consumo: {consumo:.2f} kWh")
+        print(f"Custo: {custo:.2f} R$")
+        input()
 
     def _grafico_acao(self, t_dias=None, taxa=None):
         if t_dias == None:
@@ -147,6 +157,10 @@ class Consumidor:
 
     def interagir(self, t_dias=None, taxa=None):
         clear()
+        # Imprime as informações sobre o Consumidor
+        print(self)
+        print()
+
         acao = prompt(self.tabela, style=prompt_style)["acao"]
         if acao != "sair":
             acao_args = getfullargspec(acao).args
@@ -161,19 +175,25 @@ class Consumidor:
 
             self.interagir(**val_locals)
 
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + ":" + str(self.__dict__)
+    def __str__(self) -> str:
+        return f"{self.categoria} {self.nome}\n{self._descricao}"
 
 
 class Eletrodomestico(Consumidor):
-    def __init__(self, nome, potencia, h_diario):
+    def __init__(self, nome: str, potencia: float, h_diario: float):
         super().__init__(nome)
         self.potencia = potencia
         self.h_diario = h_diario
 
+    categoria = "Eletrodoméstico"
+
     @property
     def consumo(self):
         return self.h_diario * self.potencia / 1000
+
+    @property
+    def _descricao(self):
+        return f"{self.potencia}W {self.consumo}kWh/dia"
 
     cadastro = [
         {
@@ -204,10 +224,7 @@ class Residencia(Consumidor):
         super().__init__(nome)
         self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
-        self._eletro_tabela = [
-            {"name": "Televisão", "value": TV},
-            {"name": "Personalizado", "value": Eletrodomestico},
-        ]
+        self._eletro_selecao = [TV, Eletrodomestico]
         self._acoes.insert(
             0,
             {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao},
@@ -220,6 +237,8 @@ class Residencia(Consumidor):
             {"name": "Adicionar eletrodoméstico", "value": self._adicionar_eletro_acao},
         )
 
+    categoria = "Residência"
+
     @property
     def consumo(self):
         _consumo = 0
@@ -228,6 +247,10 @@ class Residencia(Consumidor):
                 _consumo += eletro.consumo
 
         return _consumo
+
+    @property
+    def _descricao(self):
+        return f"{len(self.eletrodomesticos)} aparelhos {self.consumo}kWh/dia"
 
     def simular(self, t_dias, taxa=None):
         if taxa == None:
@@ -248,7 +271,7 @@ class Residencia(Consumidor):
                     "name": "eletro",
                     "message": "Selecione um eletrodoméstico",
                     "choices": [
-                        {"name": eletro.nome, "value": eletro}
+                        {"name": f"{eletro.categoria} {eletro.nome}", "value": eletro}
                         for eletro in self.eletrodomesticos
                     ],
                 }
@@ -263,7 +286,10 @@ class Residencia(Consumidor):
                 "type": "list",
                 "name": "eletro",
                 "message": "Selecione um eletrodoméstico",
-                "choices": self._eletro_tabela,
+                "choices": [
+                    {"name": eletro.categoria, "value": eletro}
+                    for eletro in self._eletro_selecao
+                ],
             }
         ]
         eletro = prompt(pergunta, style=prompt_style)["eletro"]
@@ -318,11 +344,293 @@ class TV(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
+    categoria = "Televisão"
+
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: TV Sala)",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class LavaRoupa(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class Geladeira(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class Fogao(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class ArCondicionado(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class Radio(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class Abajour(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "list",
+            "name": "potencia",
+            "message": "Modelo da TV",
+            "choices": [
+                {"name": 'Plasma 42"', "value": 320},
+                {"name": 'Plasma 50"', "value": 380},
+                {"name": 'LCD 32"', "value": 120},
+                {"name": 'LCD 40"', "value": 200},
+                {"name": 'LCD 42"', "value": 250},
+                {"name": 'LCD 46"', "value": 280},
+                {"name": 'LCD 52"', "value": 310},
+                {"name": 'LED 32"', "value": 100},
+                {"name": 'LED 40"', "value": 130},
+                {"name": 'LED 46"', "value": 150},
+            ],
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
+
+
+class Fogao(Eletrodomestico):
+    def __init__(self, nome, potencia, h_diario):
+        super().__init__(nome, potencia, h_diario)
+
+    categoria = "Televisão"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome da TV (ex: LG Sala)",
             "validate": lambda x: x != "",
         },
         {
