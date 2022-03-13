@@ -580,7 +580,7 @@ class Radio(Eletrodomestico):
     ]
 
 
-class Abajour(Eletrodomestico):
+class Abajur(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
