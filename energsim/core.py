@@ -202,46 +202,7 @@ class Eletrodomestico(Consumidor):
 
     @property
     def _descricao(self):
-        return f"{self.potencia}W {self.consumo}kWh/dia"
-
-    cadastro = [
-        {
-            "type": "input",
-            "name": "nome",
-            "message": "Nome do eletrodoméstico",
-            "validate": lambda x: x != "",
-        },
-        {
-            "type": "input",
-            "name": "potencia",
-            "message": "Potência (Watts)",
-            "filter": lambda val: float(val),
-            "validate": ValidarRacionaisPositivos,
-        },
-        {
-            "type": "input",
-            "name": "h_diario",
-            "message": "Uso diário (Horas)",
-            "filter": lambda val: float(val),
-            "validate": ValidarHorario,
-        },
-    ]
-
-class Eletrodomestico(Consumidor):
-    def __init__(self, nome: str, potencia: float, h_diario: float):
-        super().__init__(nome)
-        self.potencia = potencia
-        self.h_diario = h_diario
-
-    categoria = "Eletrodoméstico"
-
-    @property
-    def consumo(self):
-        return self.h_diario * self.potencia / 1000
-
-    @property
-    def _descricao(self):
-        return f"{self.potencia}W {self.consumo}kWh/dia"
+        return f"{self.potencia:.2f}W {self.consumo:.2f}kWh/dia"
 
     cadastro = [
         {
@@ -274,7 +235,6 @@ class Residencia(Consumidor):
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
         self._eletro_selecao = [
             TV,
-            Eletrodomestico,
             LavaRoupa,
             Geladeira,
             Fogao,
@@ -282,6 +242,7 @@ class Residencia(Consumidor):
             Radio,
             Computador,
             Ventilador,
+            Eletrodomestico,
         ]
         self._acoes.insert(
             0,
@@ -308,7 +269,7 @@ class Residencia(Consumidor):
 
     @property
     def _descricao(self):
-        return f"{len(self.eletrodomesticos)} aparelhos {self.consumo}kWh/dia"
+        return f"{len(self.eletrodomesticos)} aparelhos {self.consumo:.2f}kWh/dia"
 
     def simular(self, t_dias, taxa=None):
         if taxa == None:
