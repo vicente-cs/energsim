@@ -29,6 +29,7 @@ class Consumidor:
         self._acoes = [
             {"name": "Simular custo/consumo", "value": self._simular_acao},
             {"name": "Visualizar gráfico", "value": self._grafico_acao},
+            {"name": "Editar", "value": self._editar_acao},
             {"name": "Sair", "value": "sair"},
         ]
 
@@ -155,6 +156,9 @@ class Consumidor:
 
         self.grafico(t_dias, taxa)
 
+    def _editar_acao(self):
+        self = self.cadastrar(nome=self.nome)
+
     def interagir(self, t_dias=None, taxa=None):
         clear()
         # Imprime as informações sobre o Consumidor
@@ -224,7 +228,7 @@ class Residencia(Consumidor):
         super().__init__(nome)
         self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
-        self._eletro_selecao = [TV, Eletrodomestico]
+        self._eletro_selecao = [TV, Eletrodomestico, ArCondicionado]
         self._acoes.insert(
             0,
             {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao},
@@ -504,7 +508,7 @@ class ArCondicionado(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Ar condicionado"
 
     cadastro = [
         {
