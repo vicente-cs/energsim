@@ -4,7 +4,7 @@ from typing import List
 from examples import custom_style_3
 from energsim.utils import clear
 from pickle import load, dump
-from os import path
+from os import path, remove
 
 
 def carregar(fnome, default):
@@ -13,7 +13,10 @@ def carregar(fnome, default):
             file = open(fnome, "rb")
             data = load(file)
         except:
-            print("Algo deu errado")
+            input("Algo deu errado, digite enter para apagar a save...")
+            remove(fnome)
+            return carregar(fnome, default)
+            
     else:
         file = open(fnome, "wb")
         data = default

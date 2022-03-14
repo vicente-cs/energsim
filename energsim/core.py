@@ -89,10 +89,15 @@ class Consumidor:
     ]
 
     @classmethod
-    def cadastrar(cls, **kwargs):
+    def _prompt_cadastro(cls, **kwargs):
         clear()
         cadastro = list(filter(lambda x: x["name"] not in kwargs, cls.cadastro))
         respostas = {**prompt(cadastro, style=prompt_style), **kwargs}
+        return respostas
+
+    @classmethod
+    def cadastrar(cls, **kwargs):
+        respostas = cls._prompt_cadastro(**kwargs)
         return cls(**respostas)
 
     @property
@@ -127,7 +132,7 @@ class Consumidor:
                 "name": "taxa",
                 "message": "Taxa (R$/kWh)",
                 "filter": lambda val: float(val),
-                "validate": ValidarHorario,
+                "validate": ValidarRacionaisPositivos,
             }
         ]
 
@@ -156,8 +161,9 @@ class Consumidor:
 
         self.grafico(t_dias, taxa)
 
-    def _editar_acao(self):
-        self = self.cadastrar(nome=self.nome)
+    def _editar_acao(self, t_dias=None, taxa = None):
+        respostas = self._prompt_cadastro(nome=self.nome)
+        self.__dict__.update(respostas)
 
     def interagir(self, t_dias=None, taxa=None):
         clear()
@@ -176,12 +182,50 @@ class Consumidor:
 
             # Executa a ação
             acao(**val_locals)
-
-            self.interagir(**val_locals)
+            self.interagir(t_dias, taxa)
 
     def __str__(self) -> str:
         return f"{self.categoria} {self.nome}\n{self._descricao}"
 
+
+class Eletrodomestico(Consumidor):
+    def __init__(self, nome: str, potencia: float, h_diario: float):
+        super().__init__(nome)
+        self.potencia = potencia
+        self.h_diario = h_diario
+
+    categoria = "Eletrodoméstico"
+
+    @property
+    def consumo(self):
+        return self.h_diario * self.potencia / 1000
+
+    @property
+    def _descricao(self):
+        return f"{self.potencia}W {self.consumo}kWh/dia"
+
+    cadastro = [
+        {
+            "type": "input",
+            "name": "nome",
+            "message": "Nome do eletrodoméstico",
+            "validate": lambda x: x != "",
+        },
+        {
+            "type": "input",
+            "name": "potencia",
+            "message": "Potência (Watts)",
+            "filter": lambda val: float(val),
+            "validate": ValidarRacionaisPositivos,
+        },
+        {
+            "type": "input",
+            "name": "h_diario",
+            "message": "Uso diário (Horas)",
+            "filter": lambda val: float(val),
+            "validate": ValidarHorario,
+        },
+    ]
 
 class Eletrodomestico(Consumidor):
     def __init__(self, nome: str, potencia: float, h_diario: float):
@@ -228,7 +272,17 @@ class Residencia(Consumidor):
         super().__init__(nome)
         self.taxa = taxa
         self.eletrodomesticos = eletrodomesticos if eletrodomesticos is not None else []
-        self._eletro_selecao = [TV, Eletrodomestico, ArCondicionado]
+        self._eletro_selecao = [
+            TV,
+            Eletrodomestico,
+            LavaRoupa,
+            Geladeira,
+            Fogao,
+            ArCondicionado,
+            Radio,
+            Computador,
+            Ventilador,
+        ]
         self._acoes.insert(
             0,
             {"name": "Consultar eletrodoméstico", "value": self._consultar_eletro_acao},
@@ -388,30 +442,21 @@ class LavaRoupa(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Lava Roupa"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do Lava Roupa (ex: Electrolux Lavação)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo do Lava Roupa",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "Normal", "value": 500},
             ],
         },
         {
@@ -428,30 +473,22 @@ class Geladeira(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Geladeira"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome da geladeira (ex: Brastemp Cozinha)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo da Geladeira",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "1 porta", "value": 90},
+                {"name": "2 portas", "value": 130},
             ],
         },
         {
@@ -468,30 +505,26 @@ class Fogao(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Fogão"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do fogão (ex: Mondial Cozinha)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo do Fogão",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "Exaustor de fogão", "value": 170},
+                {"name": "Fogão comum", "value": 380},
+                {"name": "Fogão elétrico (4 chapas)", "value": 9120},
+                {"name": "Forno à resistência (grande)", "value": 1500},
+                {"name": "Forno à resistência (pequeno)", "value": 800},
+                {"name": "Forno Microondas", "value": 1200},
             ],
         },
         {
@@ -508,30 +541,25 @@ class ArCondicionado(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Ar condicionado"
+    categoria = "Ar-condicionado"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do Ar-condicionado (ex: Samsung Quarto)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo do Ar-condicionado",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "7.500 BTU", "value": 1000},
+                {"name": "10.000 BTU", "value": 1350},
+                {"name": "12.000 BTU", "value": 1450},
+                {"name": "15.000 BTU", "value": 2000},
+                {"name": "18.000 BTU", "value": 2100},
             ],
         },
         {
@@ -548,30 +576,23 @@ class Radio(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Rádio"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do rádio (ex: Mondial)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo do Rádio",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "Elétrico (grande)", "value": 45},
+                {"name": "Elétrico (pequeno)", "value": 10},
+                {"name": "Relógio", "value": 5},
             ],
         },
         {
@@ -584,34 +605,26 @@ class Radio(Eletrodomestico):
     ]
 
 
-class Abajur(Eletrodomestico):
+class Computador(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Computador"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do computador (ex: Dell G3)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo computador",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "Microcomputador", "value": 120},
+                {"name": "Notebook", "value": 70},
             ],
         },
         {
@@ -624,34 +637,26 @@ class Abajur(Eletrodomestico):
     ]
 
 
-class Fogao(Eletrodomestico):
+class Ventilador(Eletrodomestico):
     def __init__(self, nome, potencia, h_diario):
         super().__init__(nome, potencia, h_diario)
 
-    categoria = "Televisão"
+    categoria = "Ventilador"
 
     cadastro = [
         {
             "type": "input",
             "name": "nome",
-            "message": "Nome da TV (ex: LG Sala)",
+            "message": "Nome do ventilador (ex: Britânia sala)",
             "validate": lambda x: x != "",
         },
         {
             "type": "list",
             "name": "potencia",
-            "message": "Modelo da TV",
+            "message": "Modelo do Ventilador",
             "choices": [
-                {"name": 'Plasma 42"', "value": 320},
-                {"name": 'Plasma 50"', "value": 380},
-                {"name": 'LCD 32"', "value": 120},
-                {"name": 'LCD 40"', "value": 200},
-                {"name": 'LCD 42"', "value": 250},
-                {"name": 'LCD 46"', "value": 280},
-                {"name": 'LCD 52"', "value": 310},
-                {"name": 'LED 32"', "value": 100},
-                {"name": 'LED 40"', "value": 130},
-                {"name": 'LED 46"', "value": 150},
+                {"name": "Teto", "value": 120},
+                {"name": "Pequeno", "value": 120},
             ],
         },
         {
